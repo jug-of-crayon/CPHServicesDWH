@@ -79,8 +79,8 @@ WHERE WeekDay in (1,7)
 -- CATEGORY
 CREATE TABLE [dbo].[Dim_Category](
 	[CategoryID] [numeric](8,0) PRIMARY KEY IDENTITY(1,1) NOT NULL,
-	[CategoryShortName] [nvarchar](12) NOT NULL,
-	[CategoryLongName] [nvarchar](32) NULL,
+	[CategoryName] [nvarchar](12) NOT NULL,
+	[CategoryDetail] [nvarchar](32) NULL,
 ) ON [PRIMARY]
 GO
 
@@ -133,8 +133,9 @@ CREATE TABLE [dbo].[Fact_TimeSheet](
 ) ON [PRIMARY]
 GO
 
-CREATE TABLE [timereg].[TimeReport](
+CREATE TABLE [timereg].[RegisteredTimesheet](
 	[filename] [nvarchar](128) NULL,
+	[path] [nvarchar](128) NULL,
 	[Date] [date] NOT NULL,
 	[DataAreaId] [nvarchar](16) NULL,
 	[CustomerId] [numeric](12, 0) DEFAULT 0,
@@ -143,8 +144,8 @@ CREATE TABLE [timereg].[TimeReport](
 	[Project] [nvarchar](64) NULL,
 	[Employee] [nvarchar](16) NOT NULL,
 	[Fullname] [nvarchar](64) NULL,
-	[CategoryShortName] [nvarchar](12) NULL,
-	[Category] [nvarchar](32) NULL,
+	[CategoryName] [nvarchar](12) NULL,
+	[CategoryDetail] [nvarchar](32) NULL,
 	[Activity] [nvarchar](32) NULL,
 	[ExternalComment] [nvarchar](255) NULL,
 	[Status] [nvarchar](32) NULL,
@@ -156,18 +157,40 @@ CREATE TABLE [timereg].[TimeReport](
 ) ON [PRIMARY]
 GO
 
-CREATE PROCEDURE [timereg].[TimeSheetDims]
+CREATE TABLE [timereg].[PostedTimesheet](
+	[filename] [nvarchar](128) NULL,
+	[path] [nvarchar](128) NULL,
+	[Date] [date] NOT NULL,
+	[DataAreaId] [nvarchar](16) NULL,
+	[CustomerId] [numeric](12, 0) DEFAULT 0,
+	[Customer] [nvarchar](64) NULL,
+	[ProjectId] [numeric](8, 0) NULL,
+	[Project] [nvarchar](64) NULL,
+	[Employee] [nvarchar](16) NOT NULL,
+	[Fullname] [nvarchar](64) NULL,
+	[CategoryName] [nvarchar](12) NULL,
+	[CategoryDetail] [nvarchar](32) NULL,
+	[ExternalComment] [nvarchar](255) NULL,
+	[Status] [nvarchar](32) NULL,
+	[Hours] [numeric](8, 2) NULL,
+	[PricePerHour] [numeric](8, 2) NULL,
+	[Total] [numeric](8, 2) NULL,
+	[Currency] [nvarchar](4) NULL
+) ON [PRIMARY]
+GO
+
+CREATE PROCEDURE [timereg].[RegisterTimeSheet]
 @filename [nvarchar](128)
 AS
 
-UPDATE timereg.TimeReport
+UPDATE timereg.RegisteredTimesheet
 SET CustomerId = 0
 WHERE Customer = 'Internal - CPH'
 AND filename = @filename;
 
 INSERT INTO dbo.Dim_Customer (CustomerID, CustomerName)
 SELECT DISTINCT A.CustomerId, A.Customer
-FROM timereg.TimeReport A
+FROM timereg.RegisteredTimesheet A
 LEFT JOIN dbo.Dim_Customer B
 ON A.CustomerId = B.CustomerId
 WHERE B.CustomerId IS NULL
@@ -175,7 +198,7 @@ AND A.filename = @filename;
 
 INSERT INTO dbo.Dim_Employee (ShortName, FullName)
 SELECT DISTINCT A.Employee, A.Fullname
-FROM timereg.TimeReport A
+FROM timereg.RegisteredTimesheet A
 LEFT JOIN dbo.Dim_Employee B
 ON A.Employee = B.ShortName
 WHERE B.EmployeeID IS NULL
@@ -183,28 +206,28 @@ AND A.filename = @filename;
 
 INSERT INTO dbo.Dim_Project (ProjectID, ProjectName, CustomerID)
 SELECT DISTINCT A.ProjectID, A.Project, A.CustomerID
-FROM timereg.TimeReport A
+FROM timereg.RegisteredTimesheet A
 LEFT JOIN dbo.Dim_Project B
 ON A.ProjectId = B.ProjectID
 WHERE B.ProjectID IS NULL
 AND A.filename = @filename;
 
 --DECLARE @filename nvarchar(128) = '202107.xlsx';
-INSERT INTO dbo.Dim_Category (CategoryShortName, CategoryLongName)
-SELECT DISTINCT A.CategoryShortName, A.Category
-FROM timereg.TimeReport A
+INSERT INTO dbo.Dim_Category (CategoryName, CategoryDetail)
+SELECT DISTINCT A.CategoryName, A.CategoryDetail
+FROM timereg.RegisteredTimesheet A
 LEFT JOIN dbo.Dim_Category B
-ON A.CategoryShortName = B.CategoryShortName
+ON A.CategoryName = B.CategoryName
 WHERE B.CategoryID IS NULL
 AND A.filename = @filename;
 
 INSERT INTO dbo.Fact_TimeSheet (SourceFile,[Date], CustomerID, ProjectID, EmployeeID, CategoryID, Activity, [Hours], ApprovedBy, [Status], ExternalComment)
 SELECT A.filename, A.[Date], A.CustomerId, A.ProjectId, B.EmployeeID, C.CategoryID, A.Activity, A.[Hours], A.ApprovedBy, A.[Status], A.ExternalComment
-FROM timereg.TimeReport A
+FROM timereg.RegisteredTimesheet A
 JOIN dbo.Dim_Employee B
 ON A.Employee = B.ShortName
 JOIN dbo.Dim_Category C
-ON A.CategoryShortName = C.CategoryShortName
+ON A.CategoryName = C.CategoryName
 WHERE A.filename = @filename;
 
 RETURN

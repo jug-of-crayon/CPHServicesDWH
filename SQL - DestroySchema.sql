@@ -5,8 +5,9 @@ SET QUOTED_IDENTIFIER ON
 GO
 
 -- Schema: timereg
-DROP PROCEDURE IF EXISTS [timereg].[TimeSheetDims]
-DROP TABLE IF EXISTS [timereg].[TimeReport];
+DROP PROCEDURE IF EXISTS [timereg].[RegisterTimeSheet]
+DROP TABLE IF EXISTS [timereg].[RegisteredTimesheet];
+DROP TABLE IF EXISTS [timereg].[PostedTimesheet];
 DROP SCHEMA IF EXISTS timereg;
 
 -- Schema: dbo
