@@ -45,9 +45,6 @@ CREATE TABLE [dbo].[Dim_Date](
 	[WeekNum] [int] NOT NULL,
 	[Day] [int] NOT NULL,
 	[WeekDay] [int] NOT NULL,
-	[DayType] [nvarchar](16) NOT NULL,
-	[WorkHours] [decimal](12, 2) NOT NULL,
-	[Remarks] [nvarchar](64) NULL,
 ) ON [PRIMARY]
 GO
 
@@ -56,25 +53,31 @@ DECLARE @endDate date = '2022-01-01';
 WHILE (@startDate < @endDate)
 BEGIN
 	--PRINT @startDate;
-	INSERT INTO Dim_Date ([Date], [Year], [Month], [WeekNum], [Day], [WeekDay], [DayType], [WorkHours], [Remarks]) 
+	INSERT INTO Dim_Date ([Date], [Year], [Month], [WeekNum], [Day], [WeekDay]) 
 	VALUES(
 		@startDate, 
 		DATEPART(YEAR, @startDate), 
 		DATEPART(MONTH, @startDate), 
 		DATEPART(WEEK, @startDate),
 		DATEPART(DAY, @startDate), 
-		DATEPART(WEEKDAY, @startDate), 
-		'WEEKDAY', 
-		8, 
-		NULL
+		DATEPART(WEEKDAY, @startDate) 
 	);
 	SET @startDate = DATEADD(day, 1, @startDate);
 END
 
+CREATE TABLE [dbo].[Dim_WorkHours] (
+	[WorkhoursID] [numeric](8,0) PRIMARY KEY IDENTITY(1,1) NOT NULL,
+	[Date] [date] NOT NULL,
+	[DayType] [nvarchar](16) NOT NULL,
+	[WorkHours] [decimal](12, 2) NOT NULL,
+	[Remarks] [nvarchar](64) NULL,
+) ON [PRIMARY]
+GO
 
-UPDATE Dim_Date 
-SET DayType = 'WEEKEND'
-WHERE WeekDay in (1,7)
+INSERT INTO [dbo].[Dim_WorkHours]
+SELECT [Date], 'WORKDAY' AS DayType, 8 AS WorkHours, 'Regular Workday' AS Remarks
+FROM [dbo].[Dim_Date]
+WHERE WeekDay BETWEEN 2 AND 6
 
 -- CATEGORY
 CREATE TABLE [dbo].[Dim_Category](
