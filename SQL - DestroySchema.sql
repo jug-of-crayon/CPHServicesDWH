@@ -17,5 +17,6 @@ DROP TABLE IF EXISTS [dbo].[Dim_Employee];
 DROP TABLE IF EXISTS [dbo].[Dim_Customer];
 DROP TABLE IF EXISTS [dbo].[Dim_Category];
 DROP TABLE IF EXISTS [dbo].[Dim_Date];
+DROP TABLE IF EXISTS [dbo].[Dim_WorkHours];
 DROP TABLE IF EXISTS [dbo].[Dim_Weekday];
 DROP TABLE IF EXISTS [dbo].[Dim_Month];
